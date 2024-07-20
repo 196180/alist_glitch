@@ -1,17 +1,11 @@
 {
   "name": "alist-glitch",
   "version": "1.0.0",
-  "description": "Alist on Glitch",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "dependencies": {
-    "axios": "^0.21.1",
-    "express": "^4.17.1",
-    "tar": "^6.1.11"
-  },
   "engines": {
-    "node": "16.x"
+    "node": "14.x"
   }
 }
