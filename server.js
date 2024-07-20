@@ -3,7 +3,7 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const extract = require('extract-zip');
+const tar = require('tar');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -19,17 +19,40 @@ async function downloadAlist() {
   }
 
   console.log('Downloading Alist...');
-  const response = await axios.get('https://api.github.com/repos/alist-org/alist/releases/latest');
-  const downloadUrl = response.data.assets.find(asset => asset.name.includes('linux-amd64')).browser_download_url;
+  try {
+    const response = await axios.get('https://api.github.com/repos/alist-org/alist/releases/latest');
+    const asset = response.data.assets.find(asset => asset.name.includes('linux-amd64'));
+    
+    if (!asset) {
+      throw new Error('Could not find linux-amd64 asset in the latest release');
+    }
+    
+    const downloadUrl = asset.browser_download_url;
+    console.log(`Downloading from: ${downloadUrl}`);
 
-  const { data } = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
-  const zipFile = path.join(__dirname, 'alist.zip');
-  fs.writeFileSync(zipFile, data);
+    const { data } = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
+    const tarFile = path.join(__dirname, 'alist.tar.gz');
+    fs.writeFileSync(tarFile, data);
+    console.log(`Tar.gz file saved to: ${tarFile}`);
 
-  await extract(zipFile, { dir: ALIST_DIR });
-  fs.unlinkSync(zipFile);
-  fs.chmodSync(ALIST_EXEC, '755');
-  console.log('Alist downloaded and extracted');
+    console.log('Extracting tar.gz file...');
+    await tar.x({
+      file: tarFile,
+      cwd: ALIST_DIR
+    });
+    console.log('Extraction complete');
+
+    fs.unlinkSync(tarFile);
+    fs.chmodSync(ALIST_EXEC, '755');
+    console.log('Alist downloaded and extracted');
+  } catch (error) {
+    console.error('Error downloading or extracting Alist:', error.message);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
+    throw error;
+  }
 }
 
 function createConfig() {
@@ -62,23 +85,27 @@ function createConfig() {
 }
 
 async function startAlist() {
-  await downloadAlist();
-  createConfig();
+  try {
+    await downloadAlist();
+    createConfig();
 
-  console.log('Starting Alist...');
-  const alist = spawn(ALIST_EXEC, ['server', '--data', path.dirname(CONFIG_FILE)]);
+    console.log('Starting Alist...');
+    const alist = spawn(ALIST_EXEC, ['server', '--data', path.dirname(CONFIG_FILE)]);
 
-  alist.stdout.on('data', (data) => {
-    console.log(`Alist: ${data}`);
-  });
+    alist.stdout.on('data', (data) => {
+      console.log(`Alist: ${data}`);
+    });
 
-  alist.stderr.on('data', (data) => {
-    console.error(`Alist Error: ${data}`);
-  });
+    alist.stderr.on('data', (data) => {
+      console.error(`Alist Error: ${data}`);
+    });
 
-  alist.on('close', (code) => {
-    console.log(`Alist process exited with code ${code}`);
-  });
+    alist.on('close', (code) => {
+      console.log(`Alist process exited with code ${code}`);
+    });
+  } catch (error) {
+    console.error('Error starting Alist:', error.message);
+  }
 }
 
 app.get('/', (req, res) => {
