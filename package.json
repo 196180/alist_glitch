@@ -9,9 +9,9 @@
   "dependencies": {
     "axios": "^0.21.1",
     "express": "^4.17.1",
-    "extract-zip": "^2.0.1"
+    "tar": "^6.1.11"
   },
   "engines": {
-    "node": "14.x"
+    "node": "16.x"
   }
 }
