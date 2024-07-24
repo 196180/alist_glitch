@@ -1,48 +1,48 @@
 #!/bin/bash
 
-FILES_PATH=${FILES_PATH:-./}
-CURRENT_VERSION=''
-RELEASE_LATEST=''
+FP=${FILES_PATH:-./}
+CV=''
+RL=''
 CMD="$@"
 
-get_current_version() {
+gcv() {
     chmod +x ./app.js 2>/dev/null
-    CURRENT_VERSION=$(./app.js version | grep -o v[0-9]*\.*.)
+    CV=$(./app.js version | grep -o v[0-9]*\.*.)
 }
 
-get_latest_version() {
-    RELEASE_LATEST="$(curl -IkLs -o ${TMP_DIRECTORY}/NUL -w %{url_effective} https://github.com/alist-org/alist/releases/latest | grep -o "[^/]*$")"
-    RELEASE_LATEST="v${RELEASE_LATEST#v}"
-    if [[ -z "$RELEASE_LATEST" ]]; then
+glv() {
+    RL="$(curl -IkLs -o ${TD}/NUL -w %{url_effective} https://github.com/alist-org/alist/releases/latest | grep -o "[^/]*$")"
+    RL="v${RL#v}"
+    if [[ -z "$RL" ]]; then
         echo "error: Failed to get the latest release version, please check your network."
         exit 1
     fi
 }
 
-download_web() {
-    DOWNLOAD_LINK="https://github.com/alist-org/alist/releases/latest/download/alist-linux-musl-amd64.tar.gz"
-    if ! wget -qO "$ZIP_FILE" "$DOWNLOAD_LINK"; then
+dw() {
+    DL="https://github.com/alist-org/alist/releases/latest/download/alist-linux-musl-amd64.tar.gz"
+    if ! wget -qO "$ZF" "$DL"; then
         echo 'error: Download failed! Please check your network or try again.'
         return 1
     fi
     return 0
 }
 
-decompression() {
-    tar -zxf "$1" -C "$TMP_DIRECTORY"
-    EXIT_CODE=$?
-    if [ ${EXIT_CODE} -ne 0 ]; then
-        "rm" -r "$TMP_DIRECTORY"
-        echo "removed: $TMP_DIRECTORY"
+dc() {
+    tar -zxf "$1" -C "$TD"
+    EC=$?
+    if [ ${EC} -ne 0 ]; then
+        rm -r "$TD"
+        echo "removed: $TD"
         exit 1
     fi
 }
 
-install_web() {
-    install -m 755 ${TMP_DIRECTORY}/alist ${FILES_PATH}/app.js
+iw() {
+    install -m 755 ${TD}/alist ${FP}/app.js
 }
 
-PARSE_DB_URL() {
+pdb() {
     proto="$(echo $DATABASE_URL | grep '://' | sed -e's,^\(.*://\).*,\1,g')"
     if [[ "${proto}" =~ postgres ]]; then
         export DB_TYPE=postgres
@@ -54,20 +54,20 @@ PARSE_DB_URL() {
 
     url=$(echo $DATABASE_URL | sed -e s,${proto},,g)
 
-    userpass="$(echo $url | grep @ | cut -d@ -f1)"
-    export DB_PASS=$(echo $userpass | grep : | cut -d: -f2)
+    up="$(echo $url | grep @ | cut -d@ -f1)"
+    export DB_PASS=$(echo $up | grep : | cut -d: -f2)
     if [ -n "$DB_PASS" ]; then
-        export DB_USER=$(echo $userpass | grep : | cut -d: -f1)
+        export DB_USER=$(echo $up | grep : | cut -d: -f1)
     else
-        export DB_USER=$userpass
+        export DB_USER=$up
     fi
 
-    hostport=$(echo $url | sed -e s,$userpass@,,g | cut -d/ -f1)
-    export DB_PORT=$(echo $hostport | grep : | cut -d: -f2)
+    hp=$(echo $url | sed -e s,$up@,,g | cut -d/ -f1)
+    export DB_PORT=$(echo $hp | grep : | cut -d: -f2)
     if [ -n "$DB_PORT" ]; then
-        export DB_HOST=$(echo $hostport | grep : | cut -d: -f1)
+        export DB_HOST=$(echo $hp | grep : | cut -d: -f1)
     else
-        export DB_HOST=$hostport
+        export DB_HOST=$hp
     fi
     if [[ ${DB_TYPE} = postgres ]] && [[ ${DB_PORT} = "" ]]; then
         export DB_PORT=5432
@@ -76,13 +76,13 @@ PARSE_DB_URL() {
     export DB_NAME="$(echo $url | grep / | cut -d/ -f2- | sed 's|?.*||')"
 }
 
-run_web() {
+rw() {
     if [ "$CMD" = "server" ]; then   
         killall app.js 2>/dev/null
     fi
 
     if [ "${DATABASE_URL}" != "" ]; then
-        PARSE_DB_URL
+        pdb
     fi
 
     export HTTP_PORT=5244
@@ -100,26 +100,26 @@ run_web() {
     exec ./app.js $CMD --no-prefix 2>&1 &
 }
 
-TMP_DIRECTORY="$(mktemp -d)"
-ZIP_FILE="${TMP_DIRECTORY}/alist-linux-musl-amd64.tar.gz"
+TD="$(mktemp -d)"
+ZF="${TD}/alist-linux-musl-amd64.tar.gz"
 
-get_current_version
-get_latest_version
-if [ "${RELEASE_LATEST}" = "${CURRENT_VERSION}" ]; then
-    "rm" -rf "$TMP_DIRECTORY"
-    run_web
+gcv
+glv
+if [ "${RL}" = "${CV}" ]; then
+    rm -rf "$TD"
+    rw
     exit
 fi
-download_web
-EXIT_CODE=$?
-if [ ${EXIT_CODE} -eq 0 ]; then
+dw
+EC=$?
+if [ ${EC} -eq 0 ]; then
     :
 else
-    "rm" -r "$TMP_DIRECTORY"
-    run_web
+    rm -r "$TD"
+    rw
     exit
 fi
-decompression "$ZIP_FILE"
-install_web
-"rm" -rf "$TMP_DIRECTORY"
-run_web
+dc "$ZF"
+iw
+rm -rf "$TD"
+rw
