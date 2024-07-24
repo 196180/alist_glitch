@@ -1,125 +1,125 @@
 #!/bin/bash
 
-FP=${FILES_PATH:-./}
-CV=''
-RL=''
-CMD="$@"
+F_P=${FILES_PATH:-./}
+C_V=''
+R_L=''
+C="$@"
 
-gcv() {
-    chmod +x ./app.js 2>/dev/null
-    CV=$(./app.js version | grep -o v[0-9]*\.*.)
+g_c_v() {
+    chmod +x ./a.js 2>/dev/null
+    C_V=$(./a.js v | grep -o v[0-9]*\.*.)
 }
 
-glv() {
-    RL="$(curl -IkLs -o ${TD}/NUL -w %{url_effective} https://github.com/alist-org/alist/releases/latest | grep -o "[^/]*$")"
-    RL="v${RL#v}"
-    if [[ -z "$RL" ]]; then
-        echo "error: Failed to get the latest release version, please check your network."
+g_l_v() {
+    R_L="$(curl -IkLs -o ${T_D}/N -w %{url_effective} https://g.c/a-o/a/r/l | grep -o "[^/]*$")"
+    R_L="v${R_L#v}"
+    if [[ -z "$R_L" ]]; then
+        echo "e: Failed to get the latest release version."
         exit 1
     fi
 }
 
-dw() {
-    DL="https://github.com/alist-org/alist/releases/latest/download/alist-linux-musl-amd64.tar.gz"
-    if ! wget -qO "$ZF" "$DL"; then
-        echo 'error: Download failed! Please check your network or try again.'
+d_w() {
+    D_L="https://g.c/a-o/a/r/l/d/a-l-m-a.t.gz"
+    if ! wget -qO "$Z_F" "$D_L"; then
+        echo 'e: Download failed!'
         return 1
     fi
     return 0
 }
 
-dc() {
-    tar -zxf "$1" -C "$TD"
-    EC=$?
-    if [ ${EC} -ne 0 ]; then
-        rm -r "$TD"
-        echo "removed: $TD"
+d_c() {
+    tar -zxf "$1" -C "$T_D"
+    E_C=$?
+    if [ ${E_C} -ne 0 ]; then
+        "rm" -r "$T_D"
+        echo "r: $T_D"
         exit 1
     fi
 }
 
-iw() {
-    install -m 755 ${TD}/alist ${FP}/app.js
+i_w() {
+    install -m 755 ${T_D}/a ${F_P}/a.js
 }
 
-pdb() {
-    proto="$(echo $DATABASE_URL | grep '://' | sed -e's,^\(.*://\).*,\1,g')"
-    if [[ "${proto}" =~ postgres ]]; then
-        export DB_TYPE=postgres
-        export DB_SSL_MODE=require
-    elif [[ "${proto}" =~ mysql ]]; then
-        export DB_TYPE=mysql
-        export DB_SSL_MODE=true
+P_D_U() {
+    p="$(echo $D_U | grep '://' | sed -e's,^\(.*://\).*,\1,g')"
+    if [[ "${p}" =~ p ]]; then
+        export D_T=p
+        export D_S_M=r
+    elif [[ "${p}" =~ m ]]; then
+        export D_T=m
+        export D_S_M=t
     fi
 
-    url=$(echo $DATABASE_URL | sed -e s,${proto},,g)
+    u=$(echo $D_U | sed -e s,${p},,g)
 
-    up="$(echo $url | grep @ | cut -d@ -f1)"
-    export DB_PASS=$(echo $up | grep : | cut -d: -f2)
-    if [ -n "$DB_PASS" ]; then
-        export DB_USER=$(echo $up | grep : | cut -d: -f1)
+    up="$(echo $u | grep @ | cut -d@ -f1)"
+    export D_P=$(echo $up | grep : | cut -d: -f2)
+    if [ -n "$D_P" ]; then
+        export D_U=$(echo $up | grep : | cut -d: -f1)
     else
-        export DB_USER=$up
+        export D_U=$up
     fi
 
-    hp=$(echo $url | sed -e s,$up@,,g | cut -d/ -f1)
-    export DB_PORT=$(echo $hp | grep : | cut -d: -f2)
-    if [ -n "$DB_PORT" ]; then
-        export DB_HOST=$(echo $hp | grep : | cut -d: -f1)
+    hp=$(echo $u | sed -e s,$up@,,g | cut -d/ -f1)
+    export D_P=$(echo $hp | grep : | cut -d: -f2)
+    if [ -n "$D_P" ]; then
+        export D_H=$(echo $hp | grep : | cut -d: -f1)
     else
-        export DB_HOST=$hp
+        export D_H=$hp
     fi
-    if [[ ${DB_TYPE} = postgres ]] && [[ ${DB_PORT} = "" ]]; then
-        export DB_PORT=5432
+    if [[ ${D_T} = p ]] && [[ ${D_P} = "" ]]; then
+        export D_P=5432
     fi
 
-    export DB_NAME="$(echo $url | grep / | cut -d/ -f2- | sed 's|?.*||')"
+    export D_N="$(echo $u | grep / | cut -d/ -f2- | sed 's|?.*||')"
 }
 
-rw() {
-    if [ "$CMD" = "server" ]; then   
-        killall app.js 2>/dev/null
+r_w() {
+    if [ "$C" = "s" ]; then   
+        killall a.js 2>/dev/null
     fi
 
-    if [ "${DATABASE_URL}" != "" ]; then
-        pdb
+    if [ "${D_U}" != "" ]; then
+        P_D_U
     fi
 
-    export HTTP_PORT=5244
-    export LOG_ENABLE=false
-    export TEMP_DIR=/tmp/web
-    export DB_TYPE=${DB_TYPE:-mysql}
-    export DB_HOST=${DB_HOST}
-    export DB_PORT=${DB_PORT}
-    export DB_USER=${DB_USER}
-    export DB_PASS=${DB_PASS}
-    export DB_NAME=${DB_NAME}
-    export DB_TABLE_PREFIX=alist_
-    export DB_SSL_MODE=${DB_SSL_MODE:-true}
-    chmod +x ./app.js
-    exec ./app.js $CMD --no-prefix 2>&1 &
+    export H_P=5244
+    export L_E=f
+    export T_D=/tmp/w
+    export D_T=${D_T:-m}
+    export D_H=${D_H}
+    export D_P=${D_P}
+    export D_U=${D_U}
+    export D_P=${D_P}
+    export D_N=${D_N}
+    export D_T_P=a_
+    export D_S_M=${D_S_M:-t}
+    chmod +x ./a.js
+    exec ./a.js $C --no-prefix 2>&1 &
 }
 
-TD="$(mktemp -d)"
-ZF="${TD}/alist-linux-musl-amd64.tar.gz"
+T_D="$(mktemp -d)"
+Z_F="${T_D}/a-l-m-a.t.gz"
 
-gcv
-glv
-if [ "${RL}" = "${CV}" ]; then
-    rm -rf "$TD"
-    rw
+g_c_v
+g_l_v
+if [ "${R_L}" = "${C_V}" ]; then
+    "rm" -rf "$T_D"
+    r_w
     exit
 fi
-dw
-EC=$?
-if [ ${EC} -eq 0 ]; then
+d_w
+E_C=$?
+if [ ${E_C} -eq 0 ]; then
     :
 else
-    rm -r "$TD"
-    rw
+    "rm" -r "$T_D"
+    r_w
     exit
 fi
-dc "$ZF"
-iw
-rm -rf "$TD"
-rw
+d_c "$Z_F"
+i_w
+"rm" -rf "$T_D"
+r_w
